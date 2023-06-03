@@ -1,0 +1,7 @@
+PORT=4000
+
+PG_HOST=localhost
+PG_DB=auths
+PG_USER=postgres
+PG_PASSWORD=1234
+PG_PORT=5432

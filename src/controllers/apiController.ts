@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import { User } from '../models/User';
+import * as UserService from '../services/UserService';
 
 export const ping = (req: Request, res: Response) => {
     res.json({pong: true});
@@ -7,20 +7,17 @@ export const ping = (req: Request, res: Response) => {
 
 export const register = async (req: Request, res: Response) => {
     if(req.body.email && req.body.password) {
-        let { email, password } = req.body;
+        const { email, password } = req.body;
 
-        let hasUser = await User.findOne({where: { email }});
-        if(!hasUser) {
-            let newUser = await User.create({ email, password });
+        const newUser = await UserService.createUser(email, password);
 
-            res.status(201);
-            res.json({ id: newUser.id });
+        if (newUser instanceof Error){
+            return res.json({ error: newUser.message});
         } else {
-            res.json({ error: 'E-mail já existe.' });
+            return res.status(201).json({ id: newUser.id });
         }
     }
-
-    res.json({ error: 'E-mail e/ou senha não enviados.' });
+   return res.json({ error: 'E-mail e/ou senha não enviados.' });
 }
 
 export const login = async (req: Request, res: Response) => {
@@ -28,21 +25,24 @@ export const login = async (req: Request, res: Response) => {
         let email: string = req.body.email;
         let password: string = req.body.password;
 
-        let user = await User.findOne({ 
-            where: { email, password }
-        });
+        const user = await UserService.findByEmail(email);
+        
+        if (user) {
+            const match = await UserService.matchPassword(password, user.password);
 
-        if(user) {
-            res.json({ status: true });
-            return;
+            if( match ){
+                res.json({ status: true });
+                return;
+            }
         }
+        return res.json({ status: false });
     }
 
     res.json({ status: false });
 }
 
 export const list = async (req: Request, res: Response) => {
-    let users = await User.findAll();
+    let users = await UserService.all();
     let list: string[] = [];
 
     for(let i in users) {
